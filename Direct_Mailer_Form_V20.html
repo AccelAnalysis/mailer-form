@@ -734,17 +734,20 @@ async function refreshGeogHighlights(){
     }catch(e){ /* some geometry errors can occur; ignore this feature */ }
   }
 
-	// Build compact ID/name list for submission payload
-const idField = (LAYERS[layerKey] && LAYERS[layerKey].idField) || 'GEOID';
-const out = [];
-for (const f of filtered) {
-  const p = f.properties || {};
-  // Normalize a few possibilities
-  const id = p[idField] || p[idField?.toLowerCase?.()] || p.GEOID || p.GEOID20 || p.GEOID10 || p.ZCTA5CE20 || p.ZCTA5CE10 || '';
-  const name = p.NAMELSAD || p.NAME || p.ZCTA5CE20 || p.ZCTA5CE10 || '';
-  if (id) out.push({ geoid: String(id), name: name ? String(name) : undefined });
+// Build compact ID/name list for submission payload
+{
+  const out = [];
+  for (const f of filtered) {
+    const p = f.properties || {};
+    const id = p[idField] || p[idField?.toLowerCase?.()] ||
+               p.GEOID || p.GEOID20 || p.GEOID10 ||
+               p.ZCTA5CE20 || p.ZCTA5CE10 || '';
+    const name = p.NAMELSAD || p.NAME || p.ZCTA5CE20 || p.ZCTA5CE10 || '';
+    if (id) out.push({ geoid: String(id), name: name ? String(name) : undefined });
+  }
+  __currentHighlights = { layer: layerKey, features: out };
 }
-__currentHighlights = { layer: layerKey, features: out };
+
 
   // Draw filtered layer
   if (highlightLayer){ map.removeLayer(highlightLayer); highlightLayer = null; }
