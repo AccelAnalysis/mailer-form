@@ -15,7 +15,7 @@
     --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444;
   }
   *{box-sizing:border-box}
-  html,body{height:100%;margin:0;color:var(--ink);font-family:ui-sans-serif, system-ui, Segoe UI, Roboto, Arial}
+  html,body{height:1800px;margin:0;color:var(--ink);font-family:ui-sans-serif, system-ui, Segoe UI, Roboto, Arial}
   
   /* FULL-PAGE SKYLINE BACKGROUND */
 /* V16 — add the same transparent blue overlay used in V6 */
@@ -491,6 +491,9 @@ let __radiusSaved = false;
 let markerCounter = 0;
 const markersById = {}; // { id, marker, address, radii:number[], circleGroup:L.LayerGroup|null }
 
+// Current geography highlight snapshot added to the payload on submit
+let __currentHighlights = { layer: 'none', features: [] };
+
 function initMap() {
   const wrap = document.getElementById("map-wrap");
   const useRadius = document.getElementById("useRadius");
@@ -646,6 +649,9 @@ async function refreshGeogHighlights(){
   const layerKey = currentLayerKey();
 
   // Clear if none selected
+	
+	__currentHighlights = { layer: 'none', features: [] };
+
   if (!layerKey){
     if (highlightLayer){ map.removeLayer(highlightLayer); highlightLayer = null; }
     updateGeogCount(0);
@@ -668,6 +674,7 @@ async function refreshGeogHighlights(){
     // No circles saved → show nothing (require circles to “gate” highlights)
     if (highlightLayer){ map.removeLayer(highlightLayer); highlightLayer = null; }
     updateGeogCount(0);
+	  __currentHighlights = { layer: 'none', features: [] };
     return;
   }
 
@@ -726,6 +733,18 @@ async function refreshGeogHighlights(){
       }
     }catch(e){ /* some geometry errors can occur; ignore this feature */ }
   }
+
+	// Build compact ID/name list for submission payload
+const idField = (LAYERS[layerKey] && LAYERS[layerKey].idField) || 'GEOID';
+const out = [];
+for (const f of filtered) {
+  const p = f.properties || {};
+  // Normalize a few possibilities
+  const id = p[idField] || p[idField?.toLowerCase?.()] || p.GEOID || p.GEOID20 || p.GEOID10 || p.ZCTA5CE20 || p.ZCTA5CE10 || '';
+  const name = p.NAMELSAD || p.NAME || p.ZCTA5CE20 || p.ZCTA5CE10 || '';
+  if (id) out.push({ geoid: String(id), name: name ? String(name) : undefined });
+}
+__currentHighlights = { layer: layerKey, features: out };
 
   // Draw filtered layer
   if (highlightLayer){ map.removeLayer(highlightLayer); highlightLayer = null; }
@@ -1022,7 +1041,7 @@ function buildPayload() {
       audienceType: document.getElementById("audienceType").value,
       useRadius: document.getElementById("useRadius").value === "Yes",
       areasText: document.getElementById("areaText").value.trim(),
-      geography: { locations } // <— multi-location payload
+      geography: { locations, highlights: __currentHighlights } // include intersecting geogs
     },
     campaign: {
       mailerType: document.getElementById("mailerType").value,
