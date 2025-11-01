@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Start Your Direct Mailer Campaign • Accel Analysis</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  :root{
+    --bg:#ffffff; --card:#f9fafb; --ink:#0f172a; --muted:#64748b; --accent:#2F5597; --accent-2:#0ea5e9;
+    --ring:#e5e7eb; --r:14px; --r-sm:10px; --shadow:0 10px 30px rgba(0,0,0,.10);
+    --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;color:var(--ink);font-family:ui-sans-serif, system-ui, Segoe UI, Roboto, Arial}
+  
+  /* FULL-PAGE SKYLINE BACKGROUND */
+/* V16 — add the same transparent blue overlay used in V6 */
+body{
+  background:
+    /* overlay layer (tweak the rgba alpha to adjust strength) */
+    linear-gradient(rgba(21, 64, 133, 0.75), rgba(21, 64, 133, 0.75)),
+    /* image layer (unchanged) */
+    url('https://img1.wsimg.com/isteam/ip/0815fdc9-aafc-4fe1-99f8-dedc9ba0e23b/Skyline%20-%20Homepage.jpeg') center/cover no-repeat fixed;
+  background-color:#0a1a2f; /* fallback */
+}
+
+
+  .wrap{max-width:1020px;margin:80px auto;padding:0 5px}
+  .brand-card{
+    border-radius:20px;overflow:hidden;box-shadow:var(--shadow);background:#fff;
+    border:1px solid var(--ring);position:relative;
+  }
+
+  /* HEADER WITH LOGO */
+  .brand-header{
+    display:flex;align-items:center;gap:16px;padding:20px 22px;
+    border-bottom:1px solid var(--ring);background:linear-gradient(#fff, #f8fafc);
+  }
+  .brand-header img{height:48px;width:auto}
+  .brand-header h1{margin:0;font-size:22px;line-height:1.25;font-weight:700}
+  .brand-header p{margin:4px 0 0 0;color:var(--muted);font-size:14px}
+
+  .brand-body{padding:18px 22px 24px}
+
+  /* Sections */
+  details.section{background:var(--card);border:1px solid var(--ring);border-radius:var(--r);margin:14px 0;overflow:hidden}
+  details.section[open]{background:#fff}
+  details.section > summary{
+    list-style:none;padding:14px 16px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;
+    background:linear-gradient(#fff, #f8fafc);border-bottom:1px solid var(--ring);
+  }
+  details.section > summary::marker{display:none}
+  details.section > .content{padding:14px 16px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  label{display:block;font-size:13px;font-weight:600;margin:6px 0}
+  input, select, textarea{
+    width:100%;padding:10px 12px;border:1px solid var(--ring);border-radius:10px;font-size:14px;background:#fff
+  }
+  textarea{min-height:100px}
+  .muted{color:var(--muted);font-size:12px}
+  .btn{border:1px solid var(--ring);border-radius:12px;padding:10px 14px;font-weight:600;background:#fff;cursor:pointer}
+  .btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 12px;font-size:13px}
+  .hidden{display:none}
+
+  /* MAP – FIXED DISPLAY */
+  #map-wrap{
+     border:1px solid var(--ring);border-radius:14px;overflow:hidden;
+     margin-top:12px;position:relative;height:520px;display:block; /* always visible */
+    }
+  #radius-map{width:100%;height:520px;background:#e2e8f0}          /* fixed height – never % */
+  .map-overlay{
+    position:absolute;background:rgba(255,255,255,.5);backdrop-filter:saturate(1.1) blur(2px);
+    box-shadow:0 10px 26px rgba(0,0,0,.12);border:1px solid var(--ring);border-radius:12px;
+    padding:10px 12px;z-index:500;pointer-events:auto
+  }
+  .overlay-top-center{top:10px;left:50%;transform:translateX(-50%);min-width:260px;max-width:72%}
+  .overlay-bottom-left{left:10px;bottom:10px;max-width:360px}
+  .overlay-title{font-weight:700;margin-bottom:6px}
+  .overlay-hint{font-size:12px;color:var(--muted)}
+  .overlay-row{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
+  .overlay-row input[type="number"]{width:90px}
+  .tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:#f1f5f9;border:1px solid #e2e8f0;font-size:12px}
+  .ok{color:#155e2d;background:#dcfce7;border-color:#86efac}
+  .warn{color:#7c2d12;background:#ffedd5;border-color:#fed7aa}
+  .footer{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand-card">
+      <!-- BRANDED HEADER WITH LOGO -->
+      <div class="brand-header">
+        <img src="https://img1.wsimg.com/isteam/ip/0815fdc9-aafc-4fe1-99f8-dedc9ba0e23b/blob-f3ca1db.png" alt="Accel Analysis Logo">
+        <div>
+          <h1>Start Your Direct Mailer Campaign</h1>
+          <p>Tell us about your campaign. We’ll use your targeting and preferences to build the outreach list & estimate.</p>
+        </div>
+      </div>
+
+      <div class="brand-body">
+        <form id="mailerForm">
+
+          <!-- SECTION 1: CONTACT -->
+          <details class="section" open>
+            <summary>Section 1: Contact Info</summary>
+            <div class="content two">
+              <div><label>First Name</label><input id="firstName" type="text" required /></div>
+              <div><label>Last Name</label><input id="lastName" type="text" required /></div>
+              <div><label>Business Name <span class="muted">(optional)</span></label><input id="businessName" type="text" /></div>
+              <div><label>Email Address</label><input id="email" type="email" required /></div>
+              <div><label>Phone Number</label><input id="phone" type="tel" required /></div>
+            </div>
+          </details>
+
+          <!-- SECTION 2: TARGETING -->
+          <details class="section" open id="sectionTargeting">
+            <summary>Section 2: Targeting Preferences</summary>
+            <div class="content">
+              <div class="three">
+                <div>
+                  <label>Audience Type</label>
+                  <select id="audienceType" required>
+                    <option value="">Select…</option>
+                    <option>Residential</option>
+                    <option>Business</option>
+                    <option>Both</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Use Radius Targeting?</label>
+                  <select id="useRadius">
+                    <option>Yes</option>
+                    <option>No</option>
+                  </select>
+                </div>
+                <div>
+                  <label>ZIPs / Cities</label>
+                  <input id="areaText" type="text" placeholder="23666, Hampton, etc." />
+                  <p class="muted">Comma-separated</p>
+                </div>
+              </div>
+
+              <!-- MAP – HIDDEN UNTIL NEEDED -->
+              <div id="map-wrap">
+                <div id="radius-map"></div>
+                <div class="map-overlay overlay-top-center" id="overlaySearch">
+                  <div class="overlay-title">Find Address</div>
+                  <div class="overlay-row">
+                    <input id="searchInput" type="text" placeholder="123 Main St" />
+                    <button type="button" class="btn" id="searchBtn">Search</button>
+                  </div>
+                </div>
+                <div class="map-overlay overlay-bottom-left" id="geo-overlay">
+  		<div class="overlay-title">Geography highlight (one at a time)</div>
+		  <div class="geog-options" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+		    <label><input type="radio" name="geog-layer" value="tracts" checked> Census tracts</label>
+		    <label><input type="radio" name="geog-layer" value="zctas"> ZIP (ZCTAs)</label>
+		    <label><input type="radio" name="geog-layer" value="counties"> Counties</label>
+		    <label><input type="radio" name="geog-layer" value="none"> None</label>
+		    <button id="btn-refresh-highlights" type="button" class="btn primary" style="margin-left:auto;">Refresh</button>
+		  </div>
+		  <div class="geog-counts" id="geog-counts" style="font-size:12px;color:#64748b;margin-top:6px">Highlighted: 0</div>
+		</div>
+              </div>
+            </div>
+          </details>
+
+          <!-- SECTION 3: CAMPAIGN -->
+          <details class="section" open>
+            <summary>Section 3: Campaign Details</summary>
+            <div class="content">
+              <div class="three">
+                <div>
+                  <label>Mailer Type</label>
+                  <select id="mailerType" required>
+                    <option value="">Select…</option>
+                    <option>Postcard</option>
+                    <option>Letter</option>
+                    <option>Brochure</option>
+                    <option>Flyer</option>
+                    <option>EDDM</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label>If Other, specify</label>
+                  <input id="otherMailer" type="text" class="hidden" />
+                </div>
+		<!-- Size (shown only when the selected Mailer Type supports sizes) -->
+		<div id="mailerSizeWrap" class="hidden">
+		  <label>Size</label>
+		  <select id="mailerSize"></select>
+		  <input id="customSize" type="text" class="hidden" placeholder="Enter custom size (e.g., 9 × 13 in)" />
+		  <p id="sizeNote" class="muted"></p>
+		</div>
+                <div>
+                  <label>Target Quantity per Location</label>
+                  <select id="targetQty" required>
+                    <option value="">Select…</option>
+                    <option>Up to 500</option>
+		    <option>Up to 1,000</option>
+                    <option>Up to 2,500</option>
+                    <option>Up to 5,000</option>
+		    <option>Up to 10,000</option>
+                    <option>10,000+</option>
+                    <option>Let Geography/Budget Determine</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="two" style="margin-top:12px">
+                <div>
+                  <label>Need Design Help?</label>
+                  <select id="needDesign" required>
+                    <option value="">Select…</option>
+                    <option>Yes</option>
+                    <option>No</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Upload Design (PDF/JPG/PNG)</label>
+                  <input id="artUpload" type="file" accept=".pdf,.jpg,.jpeg,.png" class="hidden" />
+                  <p class="muted">Max 10MB</p>
+                </div>
+              </div>
+
+              <div class="two" style="margin-top:12px">
+                <div><label>In-Hands Date</label><input id="inHandsDate" type="date" /></div>
+                <div><label>Delivery Deadline (opt)</label><input id="deliveryDeadline" type="date" /></div>
+              </div>
+            </div>
+          </details>
+
+          <!-- SECTION 4: BUDGET & PREFERENCES -->
+          <details class="section" open>
+            <summary>Section 4: Budget & Preferences</summary>
+            <div class="content">
+              <div class="three">
+                <div>
+                  <label>Budget Range</label>
+                  <select id="budgetRange">
+                    <option value="">Select…</option>
+		    <option>$500 or under</option>                    
+		    <option>$500-$1,000</option>
+		    <option>$1,000-$2,000</option>
+                    <option>$2,000–$5,000</option>
+                    <option>$5,000–$10,000</option>
+                    <option>$10,000+</option>
+                    <option>Set via Geography</option>
+                  </select>
+                </div>
+                <div>
+		<label>Follow-up Method</label>
+		<select id="followUpPreference" required>
+		  <option value="">Select…</option>
+		  <option>Email</option>
+		  <option>Phone Call</option>
+		  <option>Text Message</option>
+		  <option>Virtual Meeting</option>
+		</select>
+                </div>
+                <div>
+                  <label>Seasonality</label>
+                  <select id="seasonality">
+                    <option value="">Select…</option>
+                    <option>One-Time</option>
+                    <option>Weekly</option>
+                    <option>Monthly</option>
+                    <option>Quarterly</option>
+                    <option>Annually</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <!-- SECTION 5: TARGETING CRITERIA -->
+          <details class="section" open>
+            <summary>Section 5: Selection Criteria (Optional)</summary>
+            <div class="content">
+
+              <!-- Housing -->
+              <details class="section" style="margin:8px 0; border-left:3px solid var(--accent); padding-left:12px">
+                <summary>Housing</summary>
+                <div class="content">
+                  <label>Home Market Value</label>
+                  <select id="homeValue" multiple size="5">
+                    <option>$1,000 - $24,999</option>
+                    <option>$25,000 - $49,999</option>
+                    <option>$50,000 - $74,999</option>
+                    <option>$75,000 - $99,999</option>
+                    <option>$100,000 - $124,999</option>
+                    <option>$125,000 - $149,999</option>
+                    <option>$150,000 - $174,999</option>
+                    <option>$175,000 - $199,999</option>
+                    <option>$200,000 - $224,999</option>
+                    <option>$225,000 - $249,999</option>
+                    <option>$250,000 - $274,999</option>
+                    <option>$275,000 - $299,999</option>
+                    <option>$300,000 - $349,999</option>
+                    <option>$350,000 - $399,999</option>
+                    <option>$400,000 - $449,999</option>
+                    <option>$450,000 - $499,999</option>
+                    <option>$500,000 - $749,999</option>
+                    <option>$750,000 - $999,999</option>
+                    <option>$1,000,000 Plus</option>
+                  </select>
+                  <p class="muted">Hold Ctrl/Cmd to select multiple | Arrow down to see all options</p>
+                </div>
+              </details>
+<!-- Lifestyle -->
+<details id="lifestyle" class="section" style="margin:8px 0; border-left:3px solid var(--accent); padding-left:12px">
+  <summary>Lifestyle</summary>
+  <div class="content">
+    <style>
+      /* === Lifestyle overrides to defeat global rules === */
+      #lifestyle .stack {
+        display: flex;              /* column list */
+        flex-direction: column;
+        gap: 3px;
+        width: 3%;
+      }
+      #lifestyle .stack label {
+        display: flex;              /* put box and text on one line */
+        align-items: center;
+        gap: 3px;
+        justify-content: flex-start;/* prevent push-to-right from space-between */
+        width: 100%;
+      }
+      #lifestyle .stack input[type="checkbox"] {
+        margin: 0;
+        flex: 0 0 auto;
+      }
+      #lifestyle .stack label span {
+        flex: 0 1 auto;             /* allow normal text width */
+        white-space: nowrap;        /* undo any nowrap */
+        word-break: normal;         /* undo break-all/anywhere */
+        overflow-wrap: normal;      /* keep words intact */
+        max-width: none;            /* undo any tiny max-width */
+        text-align: left;           /* undo right alignment if present */
+      }
+    </style>
+
+    <div class="stack">
+      <label><input type="checkbox" value="Price Club"><span>Price Club and Value Purchasing</span></label>
+      <label><input type="checkbox" value="Women's Apparel"><span>Women’s Apparel Purchasing</span></label>
+      <label><input type="checkbox" value="Men's Apparel"><span>Men’s Apparel Purchasing</span></label>
+      <label><input type="checkbox" value="Parenting"><span>Parenting and Children’s Interest</span></label>
+      <label><input type="checkbox" value="Pet Owner"><span>Pet Lover’s / Owners</span></label>
+      <label><input type="checkbox" value="Book Buyers"><span>Book Buyers</span></label>
+      <label><input type="checkbox" value="Hi Tech"><span>Hi-Tech Enthusiasts</span></label>
+
+      <!-- Renamed titles per your request -->
+      <label><input type="checkbox" value="Arts"><span>Interest in Arts (e.g., Music, Performing Arts)</span></label>
+      <label><input type="checkbox" value="Cooking"><span>Cooking and Wine</span></label>
+      <label><input type="checkbox" value="Outdoors"><span>Interest in Outdoor Activities</span></label>
+
+      <label><input type="checkbox" value="Investor"><span>Investor</span></label>
+      <label><input type="checkbox" value="Boat Owner"><span>Boat Owner</span></label>
+    </div>
+  </div>
+</details>
+
+
+              <!-- Consumer Detail -->
+              <details class="section" style="margin:8px 0; border-left:3px solid var(--accent); padding-left:12px">
+                <summary>Consumer Detail</summary>
+                <div class="content">
+                  <div class="two">
+                    <div>
+                      <label>Age Range</label>
+                      <select id="ageRange" multiple size="4">
+                        <option><= 18</option>
+                        <option>19 - 25</option>
+                        <option>26 - 34</option>
+                        <option>35 - 39</option>
+                        <option>40 - 45</option>
+                        <option>46 - 50</option>
+                        <option>51 - 60</option>
+                        <option>> 60</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>Gender</label>
+                      <select id="gender" multiple size="2">
+                        <option>Male</option>
+                        <option>Female</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="two" style="margin-top:10px">
+                    <div>
+                      <label>Home Owner</label>
+                      <select id="homeOwner" multiple size="2">
+                        <option>Homeowner</option>
+                        <option>Renter</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>Income</label>
+                      <select id="income" multiple size="5">
+                        <option>Less than $20,000</option>
+                        <option>$20,000 - $29,999</option>
+                        <option>$30,000 - $39,999</option>
+                        <option>$40,000 - $49,999</option>
+                        <option>$50,000 - $74,999</option>
+                        <option>$75,000 - $99,999</option>
+                        <option>$100,000 - $124,999</option>
+                        <option>$125,000 or More</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+            </div>
+          </details>
+
+          <!-- SECTION 6: NOTES -->
+          <details class="section" open>
+            <summary>Section 6: Notes</summary>
+            <div class="content">
+              <label>Additional Notes</label>
+              <textarea id="notes" placeholder="Specific offer, branding, or target audience details..."></textarea>
+            </div>
+          </details>
+
+          <div class="footer">
+            <button id="submitBtn" class="btn primary" type="submit">Start My Mailer Request</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* CONFIG */
+const INTEGRATIONS = {
+  WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbzbT80wsdzU_gXROGd9fZAWfqbHqyecpMEsAzNt4IKJucIbEG-rlagawDL9E-OUMb9B/exec",
+  BOOKINGS_URL: "https://outlook.office.com/book/AccelAnalysis1@NETORGFT15328873.onmicrosoft.com/s/LUKxf3eKv0igPKL4Tbkb-A2?ismsaljsauthenabled"
+};
+/* Mailer Size Options by Type */
+const SIZE_OPTIONS = {
+  "Postcard": [
+    "4 × 6 in",
+    "5 × 7 in",
+    "5.5 × 8.5 in",
+    "6 × 9 in",
+    "6 × 11 in",
+    "9 × 12 in"
+  ],
+  "Letter": [
+    "#10 Envelope + 8.5 × 11 in insert (tri-fold)",
+    "6 × 9 in Envelope + Flat Insert",
+    "9 × 12 in Flat (No Fold)"
+  ],
+  "Brochure": [
+    "8.5 × 11 in (Tri-Fold)",
+    "8.5 × 14 in (Z-Fold)",
+    "11 × 17 in (Half-Fold)"
+  ],
+  "Flyer": [
+    "8.5 × 11 in",
+    "8.5 × 14 in",
+    "11 × 17 in"
+  ],
+  "EDDM": [
+    "6.25 × 9 in",
+    "6.25 × 11 in",
+    "8.5 × 11 in",
+    "8.5 × 12 in",
+    "9 × 12 in"
+  ]
+};
+
+/* MAP — MULTI-LOCATION CORE (replaces single-marker logic) */
+let map; const metersPerMile = 1609.344;
+
+// Keep this so the existing submit check continues to work.
+// We’ll mark it true when ALL pins have at least one radius saved.
+let __radiusSaved = false;
+
+// Multi-marker store
+let markerCounter = 0;
+const markersById = {}; // { id, marker, address, radii:number[], circleGroup:L.LayerGroup|null }
+
+function initMap() {
+  const wrap = document.getElementById("map-wrap");
+  const useRadius = document.getElementById("useRadius");
+
+   // Map is always visible; keep the resize behavior
+   function toggleMap() {
+     if (map) {
+       requestAnimationFrame(()=>requestAnimationFrame(()=>map.invalidateSize(false)));
+     }
+   }
+   useRadius.addEventListener("change", toggleMap);
+
+
+  // Init map
+  map = L.map('radius-map').setView([37.0298, -76.3452], 9);  // start wider
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  // Default & “done” icons
+  const defaultIcon = L.icon({
+    iconUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize:[25,41], iconAnchor:[12,41], popupAnchor:[1,-32], shadowSize:[41,41]
+  });
+  const greenIcon = L.icon({
+    iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize:[25,41], iconAnchor:[12,41], popupAnchor:[1,-32], shadowSize:[41,41]
+  });
+
+  // Fit Markers control
+  const FitControl = L.Control.extend({
+    options:{position:'topleft'},
+    onAdd:function(){
+      const d=L.DomUtil.create('div');
+      d.className='btn'; d.style.padding='6px 10px'; d.style.fontWeight='700'; d.textContent='Fit Markers';
+      L.DomEvent.disableClickPropagation(d);
+      d.addEventListener('click', fitToAllMarkers);
+      return d;
+    }
+  });
+  map.addControl(new FitControl());
+
+// Block map interactions behind overlays
+[document.getElementById("overlaySearch"), document.getElementById("geo-overlay")].forEach(el=>{
+  if(!el) return;
+  L.DomEvent.disableClickPropagation(el);
+  L.DomEvent.disableScrollPropagation(el);
+});
+
+// (Optional) If the old Radius panel still exists in the DOM, keep it hidden.
+const radiusPanel = document.getElementById("overlayRadius");
+if (radiusPanel) radiusPanel.style.display = "none";
+
+/* ============================================
+   GEOGRAPHY HIGHLIGHTS: ZIP (ZCTAs) / COUNTIES / TRACTS
+   - Toggles a single highlight layer at a time
+   - Pulls features for current map bounds
+   - Updates a simple "Highlighted: N" counter
+   ============================================ */
+let highlightLayer = null;
+const polygonCache = {}; // cache by layer+bbox key to avoid repeated fetches
+
+// TIGERweb FeatureServer query endpoints
+const LAYERS = {
+  counties: {
+    url: "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/1/query",
+    idField: "GEOID",             // fallbacks handled below when reading properties
+    nameField: "NAMELSAD",
+    style: { color: "#ff9800", weight: 1, fillColor: "#ffa500", fillOpacity: 0.25 }
+  },
+  tracts: {
+    url: "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/0/query",
+    idField: "GEOID",
+    nameField: "NAMELSAD",
+    style: { color: "#00c878", weight: 1, fillColor: "#00c878", fillOpacity: 0.25 }
+  },
+  zctas: {
+    // 2020 ZCTAs (field names differ from 2010; we’ll handle both)
+    url: "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Census2020/MapServer/8/query",
+    idField: "GEOID20",           // fallbacks handled below
+    nameField: "ZCTA5CE20",
+    style: { color: "#0080ff", weight: 1, fillColor: "#0080ff", fillOpacity: 0.25 }
+  }
+};
+
+const geogRadios = Array.from(document.querySelectorAll('input[name="geog-layer"]'));
+const elGeogCounts = document.getElementById("geog-counts");
+const btnRefreshHighlights = document.getElementById("btn-refresh-highlights");
+
+// Debounce utility so we don’t spam the service while panning/zooming
+function debounce(fn, delay){ let t; return function(){ clearTimeout(t); t = setTimeout(fn, delay); }; }
+const refreshGeogHighlightsDebounced = debounce(refreshGeogHighlights, 200);
+
+geogRadios.forEach(r => r.addEventListener("change", refreshGeogHighlights));
+if (btnRefreshHighlights) btnRefreshHighlights.addEventListener("click", refreshGeogHighlights);
+map.on("moveend", refreshGeogHighlightsDebounced);
+
+// Return currently selected layer key or null
+function currentLayerKey(){
+  const r = geogRadios.find(x => x.checked);
+  return (r && r.value !== "none") ? r.value : null;
+}
+
+// Convert Leaflet bounds to ArcGIS envelope
+function boundsToEnvelope(b){
+  return { xmin: b.getWest(), ymin: b.getSouth(), xmax: b.getEast(), ymax: b.getNorth() };
+}
+
+// Fetch polygons intersecting the current bounds (with caching)
+async function getPolygonsForBBox(layerKey, envelope){
+  const cfg = LAYERS[layerKey];
+  const bboxKey = `${layerKey}:${envelope.xmin.toFixed(3)},${envelope.ymin.toFixed(3)},${envelope.xmax.toFixed(3)},${envelope.ymax.toFixed(3)}`;
+  if (polygonCache[bboxKey]) return polygonCache[bboxKey];
+
+  const params = new URLSearchParams({
+    f: "geojson",
+    where: "1=1",
+    geometry: JSON.stringify(envelope),
+    geometryType: "esriGeometryEnvelope",
+    inSR: "4326",
+    spatialRel: "esriSpatialRelIntersects",
+    outFields: "*",
+    returnGeometry: "true",
+    outSR: "4326"
+  });
+
+  const res = await fetch(`${cfg.url}?${params}`, { headers: { "Accept": "application/json" } });
+  const fc = await res.json();
+  polygonCache[bboxKey] = fc;
+  return fc;
+}
+
+// Apply layer styling and update counter
+function setHighlightLayer(featureCollection, layerKey){
+  if (highlightLayer){ map.removeLayer(highlightLayer); highlightLayer = null; }
+  if (!featureCollection || !Array.isArray(featureCollection.features) || !featureCollection.features.length){
+    updateGeogCount(0);
+    return;
+  }
+  const style = LAYERS[layerKey].style;
+  highlightLayer = L.geoJSON(featureCollection, { style }).addTo(map);
+  updateGeogCount(featureCollection.features.length);
+}
+
+function updateGeogCount(n){
+  if (elGeogCounts) elGeogCounts.textContent = `Highlighted: ${n}`;
+}
+
+// Main refresh function (radio change / refresh button / map moved)
+// Only highlight geographies that INTERSECT the union of all radius circles.
+// Uses ONE cached pull per layer+bbox (no per-circle requests).
+async function refreshGeogHighlights(){
+  const layerKey = currentLayerKey();
+
+  // Clear if none selected
+  if (!layerKey){
+    if (highlightLayer){ map.removeLayer(highlightLayer); highlightLayer = null; }
+    updateGeogCount(0);
+    return;
+  }
+
+  // Ensure Turf is available (load once if missing)
+  if (typeof turf === 'undefined'){
+    await new Promise(resolve => {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/@turf/turf@6.5.0/turf.min.js';
+      s.onload = resolve;
+      document.head.appendChild(s);
+    });
+  }
+
+  // Build a single UNION geometry from all saved radii across all markers
+  const unionGeom = buildUnionBuffer();
+  if (!unionGeom){
+    // No circles saved → show nothing (require circles to “gate” highlights)
+    if (highlightLayer){ map.removeLayer(highlightLayer); highlightLayer = null; }
+    updateGeogCount(0);
+    return;
+  }
+
+  // Pad the bbox ONCE based on the largest radius so we don’t miss features at edges
+  const pad = milesToDegreePadding(maxRadiusMilesAcrossAll());
+  const vb = map.getBounds();
+  const envelope = {
+    xmin: vb.getWest()  - pad.lng,
+    ymin: vb.getSouth() - pad.lat,
+    xmax: vb.getEast()  + pad.lng,
+    ymax: vb.getNorth() + pad.lat
+  };
+
+  // Single (cached) fetch for this layer + padded bbox
+  const fc = await getPolygonsForBBox(layerKey, envelope);
+  if (!fc || !Array.isArray(fc.features)){
+    if (highlightLayer){ map.removeLayer(highlightLayer); highlightLayer = null; }
+    updateGeogCount(0);
+    return;
+  }
+
+  // Normalize some common ID/name fields (vintage differences)
+  if (fc && Array.isArray(fc.features)){
+    for (const f of fc.features){
+      const p = f.properties || {};
+      if (layerKey === 'zctas'){
+        p.GEOID   = p.GEOID   || p.GEOID20   || p.GEOID10   || p.ZCTA5CE20 || p.ZCTA5CE10 || '';
+        p.NAMELSAD= p.NAMELSAD|| p.ZCTA5CE20 || p.ZCTA5CE10 || '';
+      } else {
+        p.GEOID   = p.GEOID   || p.GEOID20   || p.GEOID10   || '';
+        p.NAMELSAD= p.NAMELSAD|| p.NAME      || '';
+      }
+      f.properties = p;
+    }
+  }
+
+  // Fast prefilter via bbox, then precise intersects with the union
+  const unionBBox = turf.bbox(unionGeom);
+  const idField = (LAYERS[layerKey] && LAYERS[layerKey].idField) || 'GEOID';
+  const seen = new Set();
+  const filtered = [];
+
+  for (const feat of fc.features){
+    // quick bbox reject
+    const fb = turf.bbox(feat);
+    if (!bboxIntersects(unionBBox, fb)) continue;
+
+    // guard against duplicates by ID
+    const idVal = (feat.properties && (feat.properties[idField] || feat.properties[idField?.toLowerCase?.()])) || '';
+    if (idVal && seen.has(idVal)) continue;
+
+    try{
+      if (turf.booleanIntersects(unionGeom, feat)){
+        filtered.push(feat);
+        if (idVal) seen.add(idVal);
+      }
+    }catch(e){ /* some geometry errors can occur; ignore this feature */ }
+  }
+
+  // Draw filtered layer
+  if (highlightLayer){ map.removeLayer(highlightLayer); highlightLayer = null; }
+  if (!filtered.length){
+    updateGeogCount(0);
+    return;
+  }
+  const style = LAYERS[layerKey].style;
+  highlightLayer = L.geoJSON({ type:'FeatureCollection', features: filtered }, { style, onEachFeature:(feature, layer)=>{
+  const p = feature.properties || {};
+  const id = p[idField] || p[idField?.toLowerCase?.()] || '';
+  const nm = p.NAMELSAD || p.NAME || '';
+  layer.bindTooltip(nm ? `${nm} (${id})` : String(id||''));
+}}).addTo(map);
+
+updateGeogCount(filtered.length);
+
+// NEW: ensure highlights are in view alongside current markers
+fitToMarkersAndHighlights();
+
+}
+
+/* ---------- helpers (copied/adapted from radius selector) ---------- */
+
+// Build a single polygon by unioning all circle polygons across all markers
+function buildUnionBuffer(){
+  const polys = [];
+  for (const id in markersById){
+    const e = markersById[id];
+    if (!e.radii || !e.radii.length) continue;
+    const ll = e.marker.getLatLng();
+    const center = [ll.lng, ll.lat];
+    for (const r of e.radii){
+      polys.push(turf.circle(center, r, { steps:64, units:'miles' }));
+    }
+  }
+  if (!polys.length) return null;
+  let u = polys[0];
+  for (let i = 1; i < polys.length; i++){
+    try{ u = turf.union(u, polys[i]); }catch(e){ /* skip problematic piece */ }
+  }
+  return u;
+}
+
+// Largest radius across all saved circles (miles) → for bbox padding
+function maxRadiusMilesAcrossAll(){
+  let m = 0;
+  for (const id in markersById){
+    const e = markersById[id];
+    if (e.radii && e.radii.length){
+      m = Math.max(m, e.radii[e.radii.length - 1]);
+    }
+  }
+  return m;
+}
+
+// Approx padding (deg) at current latitude so we only fetch once per view
+function milesToDegreePadding(mi){
+  if (!mi || mi <= 0) return { lat: 0, lng: 0 };
+  const latRad = map.getCenter().lat * Math.PI/180;
+  const dLat = mi / 69.0;                           // ~69 miles per degree latitude
+  const dLng = mi / (69.172 * Math.cos(latRad) || 1);
+  return { lat: dLat, lng: dLng };
+}
+
+// Simple AABB bbox intersection test
+function bboxIntersects(a, b){
+  // a: [minX, minY, maxX, maxY], b: same
+  return !(a[2] < b[0] || a[0] > b[2] || a[3] < b[1] || a[1] > b[3]);
+}
+
+// Kick once on load if a radio is pre-selected
+refreshGeogHighlights();
+
+  // Add markers by clicking the map
+  map.on('click', e => {
+    addMarker(
+      e.latlng.lat,
+      e.latlng.lng,
+      `Lat ${e.latlng.lat.toFixed(5)}, Lng ${e.latlng.lng.toFixed(5)}`,
+      defaultIcon,
+      greenIcon
+    );
+  });
+
+  // Address search → drop a marker
+  const search = () => {
+    const q = document.getElementById("searchInput").value.trim();
+    if (!q) return;
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`)
+      .then(r=>r.json()).then(arr=>{
+        if (!arr.length) return alert("Not found");
+        const hit = arr[0];
+        const lat = parseFloat(hit.lat), lng = parseFloat(hit.lon);
+        map.setView([lat, lng], 14);
+        addMarker(lat, lng, hit.display_name || '', defaultIcon, greenIcon);
+        document.getElementById("searchInput").value='';
+      }).catch(()=>alert("Search failed"));
+  };
+  document.getElementById("searchBtn").onclick = search;
+  document.getElementById("searchInput").addEventListener("keydown", e=> e.key==="Enter" && search());
+
+  // Resize on section toggle
+  const targetingSection = document.getElementById("sectionTargeting");
+  targetingSection.addEventListener("toggle", () => {
+    if (targetingSection.open && useRadius.value === "Yes") {
+      requestAnimationFrame(()=>requestAnimationFrame(()=>map.invalidateSize(false)));
+    }
+  });
+
+   // Initial size refresh (map is always visible now)
+   toggleMap();
+
+}
+
+/* ---------- Multi-marker helpers ---------- */
+function addMarker(lat, lng, address, defaultIcon, greenIcon){
+  markerCounter++;
+  const id = markerCounter;
+  const marker = L.marker([lat, lng], {icon:defaultIcon, draggable:false}).addTo(map);
+  const entry = { id, marker, address: address||'', radii: [], circleGroup: null, _defaultIcon:defaultIcon, _greenIcon:greenIcon };
+  markersById[id] = entry;
+  bindMarkerPopup(entry);
+  map.setView([lat, lng], Math.max(map.getZoom(), 12));
+  updateSavedFlagAndUI();
+}
+
+function bindMarkerPopup(entry){
+  if(!entry.marker._popup) entry.marker.bindPopup(' ');
+  entry.marker.off('click');
+  entry.marker.on('click', ()=>{
+    const node = buildPopupContent(entry);
+    entry.marker.setPopupContent(node);
+    entry.marker.openPopup();
+  });
+}
+
+function buildPopupContent(entry){
+  const div = document.createElement('div');
+  div.style.minWidth='240px'; div.style.fontSize='13px'; div.style.fontFamily='ui-sans-serif,system-ui';
+  const n = entry.radii?.length ? entry.radii.length : '';
+  const d = entry.radii?.length ? entry.radii[0] : '';
+  div.innerHTML = `
+    <div style="margin-bottom:8px">
+      <label style="font-weight:700;font-size:12px;display:block;margin-bottom:2px">Address/Label</label>
+      <input type="text" class="js-address" value="${escapeHtml(entry.address)}" style="width:100%;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px"/>
+    </div>
+    <div style="margin-bottom:8px">
+      <label style="font-weight:700;font-size:12px;display:block;margin-bottom:2px">Radii</label>
+      <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+        <div><div style="font-size:12px;color:#64748b">Number (1–5)</div>
+          <input type="number" min="1" max="5" step="1" class="js-num" value="${n}" style="width:90px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px"/></div>
+        <div><div style="font-size:12px;color:#64748b">Step (miles)</div>
+          <input type="number" min="0.1" step="0.1" class="js-dist" value="${d}" style="width:90px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px"/></div>
+      </div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px">Example: 3 × 0.5mi → 0.5, 1.0, 1.5</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:space-between">
+      <button class="js-delete" style="background:#fff;color:#b91c1c;border:1px solid #b91c1c;border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer">Delete</button>
+      <button class="js-save" style="background:#2F5597;color:#fff;border:1px solid #1f3b6b;border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer;margin-left:auto">Save</button>
+    </div>
+  `;
+  const inpAddress = div.querySelector('.js-address');
+  const inpNum = div.querySelector('.js-num');
+  const inpDist = div.querySelector('.js-dist');
+  const btnDelete = div.querySelector('.js-delete');
+  const btnSave = div.querySelector('.js-save');
+
+  inpAddress?.addEventListener('change', ()=>{ entry.address = inpAddress.value.trim(); });
+
+  btnDelete?.addEventListener('click', ()=>{
+    removeMarker(entry.id);
+    map.closePopup();
+    updateSavedFlagAndUI();
+  });
+
+  btnSave?.addEventListener('click', ()=>{
+    const nVal = parseInt(inpNum.value,10);
+    const dVal = parseFloat(inpDist.value);
+    if (isNaN(nVal) || nVal<1 || nVal>5 || isNaN(dVal) || dVal<=0){
+      alert('Enter 1–5 radii and a base distance > 0.');
+      return;
+    }
+    const radii = [];
+    for (let i=1;i<=nVal;i++) radii.push(round1(i*dVal));
+    entry.radii = radii;
+    drawCircles(entry);
+    setMarkerDone(entry, true);
+    updateSavedFlagAndUI();
+    map.closePopup();
+  });
+  return div;
+}
+
+function removeMarker(id){
+  const e = markersById[id];
+  if(!e) return;
+  if(e.circleGroup) map.removeLayer(e.circleGroup);
+  map.removeLayer(e.marker);
+  delete markersById[id];
+}
+
+function drawCircles(entry){
+  if (entry.circleGroup){ map.removeLayer(entry.circleGroup); entry.circleGroup=null; }
+  if (!entry.radii?.length) return;
+  const g = L.layerGroup().addTo(map);
+  entry.circleGroup = g;
+  const latlng = entry.marker.getLatLng();
+  entry.radii.forEach(r=>{
+    L.circle(latlng, {radius: r*metersPerMile, color:"#2F5597", weight:2, fillOpacity:.06})
+      .addTo(g).bindTooltip(r.toFixed(1)+' mi');
+  });
+}
+
+function setMarkerDone(entry, done){
+  entry.marker.setIcon(done ? entry._greenIcon : entry._defaultIcon);
+}
+
+function fitToAllMarkers(){
+  const ids = Object.keys(markersById);
+  if(!ids.length) return;
+  const fg = L.featureGroup(ids.map(id=>markersById[id].marker));
+  map.fitBounds(fg.getBounds().pad(.2));
+}
+
+function boundsOfLayer(layer){
+  try { return layer.getBounds(); } catch(e){ return null; }
+}
+
+function fitToMarkersAndHighlights(){
+  const ids = Object.keys(markersById);
+  let unionBounds = null;
+
+  // include markers
+  if (ids.length){
+    const fg = L.featureGroup(ids.map(id => markersById[id].marker));
+    unionBounds = fg.getBounds();
+  }
+
+  // include current highlight layer if present
+  if (highlightLayer){
+    const hb = boundsOfLayer(highlightLayer);
+    if (hb){
+      unionBounds = unionBounds ? unionBounds.extend(hb) : hb;
+    }
+  }
+
+  if (unionBounds && unionBounds.isValid()){
+    map.fitBounds(unionBounds.pad(0.20));
+  }
+}
+
+function updateSavedFlagAndUI(){
+  const allIds = Object.keys(markersById);
+  __radiusSaved = allIds.length>0 && allIds.every(id => (markersById[id].radii||[]).length>0);
+  const tag = document.getElementById('ringStatus');
+  if (tag){
+    tag.textContent = __radiusSaved ? 'Saved' : (allIds.length ? 'Not saved' : '—');
+    tag.className = 'tag ' + (__radiusSaved ? 'ok' : (allIds.length ? 'warn' : ''));
+  }
+}
+
+function round1(v){ return Math.round(v*10)/10; }
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* -------------------------------------------------
+   PAYLOAD BUILDER (now outputs multiple locations)
+   ------------------------------------------------- */
+function buildPayload() {
+  const getSelectValues = id => Array.from(document.getElementById(id).selectedOptions).map(o=>o.value);
+  const getChecked = sel => Array.from(document.querySelectorAll(sel)).filter(c=>c.checked).map(c=>c.value);
+
+  // Collect locations
+  const locations = [];
+  for (const id in markersById){
+    const e = markersById[id];
+    const {lat, lng} = e.marker.getLatLng();
+    locations.push({
+      address: e.address||'',
+      lat, lng,
+      radii: (e.radii||[]).slice() // miles
+    });
+  }
+
+  return {
+    contact: {
+      firstName: document.getElementById("firstName").value.trim(),
+      lastName: document.getElementById("lastName").value.trim(),
+      businessName: document.getElementById("businessName").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      phone: document.getElementById("phone").value.trim()
+    },
+    targeting: {
+      audienceType: document.getElementById("audienceType").value,
+      useRadius: document.getElementById("useRadius").value === "Yes",
+      areasText: document.getElementById("areaText").value.trim(),
+      geography: { locations } // <— multi-location payload
+    },
+    campaign: {
+      mailerType: document.getElementById("mailerType").value,
+      mailerSize: document.getElementById("mailerSize")?.value || "",
+      customSize: document.getElementById("customSize")?.value || "",
+      otherMailer: document.getElementById("otherMailer").value,
+      targetQty: document.getElementById("targetQty").value,
+      needDesign: document.getElementById("needDesign").value,
+      inHandsDate: document.getElementById("inHandsDate").value,
+      deliveryDeadline: document.getElementById("deliveryDeadline").value,
+      budgetRange: document.getElementById("budgetRange").value
+    },
+    preferences: {
+      followUpPreference: document.getElementById("followUpPreference").value,
+      seasonality: document.getElementById("seasonality").value
+    },
+    criteria: {
+      homeValue: getSelectValues("homeValue"),
+      lifestyle: getChecked("input[type=checkbox]"),
+      ageRange: getSelectValues("ageRange"),
+      gender: getSelectValues("gender"),
+      homeOwner: getSelectValues("homeOwner"),
+      income: getSelectValues("income")
+    },
+    notes: document.getElementById("notes").value
+  };
+}
+
+
+/* -------------------------------------------------
+   FORM SUBMISSION
+   ------------------------------------------------- */
+window.addEventListener("DOMContentLoaded", () => {
+  initMap();
+
+// If already submitted this session, show Thank-You immediately
+const last = sessionStorage.getItem("dm_last_payload");
+if (sessionStorage.getItem("dm_submitted") === "1" && last) {
+  try { renderThankYou(JSON.parse(last)); } catch { renderThankYou({}); }
+}
+
+// Conditional fields (Mailer Type → Other + Size)
+const mailerType = document.getElementById("mailerType");
+const otherMailer = document.getElementById("otherMailer");
+
+// NEW refs for size UI
+const mailerSizeWrap = document.getElementById("mailerSizeWrap");
+const mailerSize = document.getElementById("mailerSize");
+const customSize = document.getElementById("customSize");
+const sizeNote = document.getElementById("sizeNote");
+
+// Populate sizes when type changes; show/hide like "Other"
+function refreshSizeOptions() {
+  const type = mailerType.value;
+
+  // Keep existing "Other" behavior
+  otherMailer.classList.toggle("hidden", type !== "Other");
+
+  const sizes = SIZE_OPTIONS[type];
+  if (sizes && sizes.length) {
+    // Show size control and load options (+ Custom… at end)
+    mailerSizeWrap.classList.remove("hidden");
+    const opts = ['<option value="">Select…</option>']
+      .concat(sizes.map(s => `<option>${s}</option>`))
+      .concat('<option value="Custom">Custom…</option>');
+    mailerSize.innerHTML = opts.join('');
+    customSize.classList.add("hidden");
+    customSize.value = "";
+    sizeNote.textContent = (type === "EDDM")
+      ? 'EDDM must mail as a USPS “Flat”. We’ll confirm thickness/aspect.'
+      : '';
+  } else {
+    // Hide size control for types without predefined sizes (e.g., Other)
+    mailerSizeWrap.classList.add("hidden");
+    mailerSize.innerHTML = "";
+    customSize.classList.add("hidden");
+    customSize.value = "";
+    sizeNote.textContent = "";
+  }
+}
+
+mailerType.addEventListener("change", refreshSizeOptions);
+
+// If user chooses "Custom…", show the custom size input
+mailerSize.addEventListener("change", () => {
+  const isCustom = mailerSize.value === "Custom";
+  customSize.classList.toggle("hidden", !isCustom);
+  if (!isCustom) customSize.value = "";
+});
+
+// Run once on load in case of prefill
+refreshSizeOptions();
+
+
+  const needDesign = document.getElementById("needDesign");
+  const artUpload = document.getElementById("artUpload");
+  needDesign.addEventListener("change", () => {
+    const show = needDesign.value === "No";
+    artUpload.classList.toggle("hidden", !show);
+  });
+
+// === Thank-You + Toast + Printable (NEW) ====================================
+
+// Fallback HTML escaper if escapeHtml isn’t defined earlier (your file defines it; this is defensive)
+const _escHTML = (typeof escapeHtml === 'function')
+  ? escapeHtml
+  : (s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
+
+function showToast(msg, isError){
+  let t = document.getElementById("inline-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "inline-toast";
+    t.style.position = "fixed";
+    t.style.bottom = "20px";
+    t.style.left = "50%";
+    t.style.transform = "translateX(-50%)";
+    t.style.background = isError ? "#fee2e2" : "#dcfce7";
+    t.style.color = isError ? "#991b1b" : "#14532d";
+    t.style.border = "1px solid " + (isError ? "#fecaca" : "#86efac");
+    t.style.borderRadius = "10px";
+    t.style.padding = "10px 14px";
+    t.style.fontWeight = "600";
+    t.style.boxShadow = "0 10px 20px rgba(0,0,0,.12)";
+    t.style.zIndex = "9999";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = "block";
+  setTimeout(()=>{ t.style.display = "none"; }, 3000);
+}
+
+function renderThankYou(data){
+  const wrap =
+    document.querySelector(".brand-body") ||
+    document.getElementById("mailerForm")?.parentElement ||
+    document.body;
+
+  const wantsVM = data?.preferences?.followUpPreference === "Virtual Meeting";
+  const canOpen = Boolean(INTEGRATIONS?.BOOKINGS_URL);
+  const shouldAutoOpen = wantsVM && canOpen;
+
+  wrap.innerHTML = `
+    <div class="content" style="padding:24px">
+      <h2 style="margin:0 0 6px 0">Thanks! Your request has been submitted.</h2>
+      <p class="muted" style="margin:0 0 16px 0">
+        We’ll review and follow up within one business day.
+      </p>
+
+      <div class="note" id="vm-note" style="margin-bottom:16px">
+        ${
+          shouldAutoOpen
+            ? `Your meeting scheduler will open in a new tab in <strong><span id="vm-count">7</span></strong> seconds. If it does not open, please allow pop-ups for this site, then click the <em>Open Meeting Scheduler</em> button below.`
+            : `If you’d prefer a virtual meeting, you can book one below.`
+        }
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <button id="btn-printable" class="btn">Open Printable Summary</button>
+        <button id="btn-scheduler" class="btn primary">Open Meeting Scheduler</button>
+      </div>
+
+      <p class="muted" style="margin-top:8px">
+        The scheduler opens in a new tab. If blocked, please check your popup blocker settings.
+      </p>
+    </div>
+  `;
+
+  // Wire buttons
+  const btnPrintable = document.getElementById("btn-printable");
+  const btnScheduler = document.getElementById("btn-scheduler");
+  const cntNode = document.getElementById("vm-count");
+
+  btnPrintable?.addEventListener("click", () => openPrintableSummary(data));
+  btnScheduler?.addEventListener("click", () => {
+    if (canOpen) {
+      opened = true; // prevent double-open if user clicks early
+      window.open(INTEGRATIONS.BOOKINGS_URL, "_blank", "noopener");
+    } else {
+      showToast("Scheduler not configured.", true);
+    }
+  });
+
+  // Auto-open after a 5s countdown, only when Virtual Meeting was selected
+  let opened = false;
+  if (shouldAutoOpen) {
+    let secs = 7;
+    const timer = setInterval(() => {
+      secs -= 1;
+      if (cntNode) cntNode.textContent = String(Math.max(secs, 0));
+
+      if (secs <= 0) {
+        clearInterval(timer);
+        if (!opened && canOpen) {
+          const w = window.open(INTEGRATIONS.BOOKINGS_URL, "_blank", "noopener");
+          // If popup blocked, nudge the user (message already says what to do)
+          if (!w) showToast("Popup blocked. Please allow pop-ups, then click the button below.", true);
+          opened = true;
+        }
+      }
+    }, 1000);
+  }
+}
+
+function openPrintableSummary(data){
+  // Use about:blank without "noopener" so Safari/Chromium return a window handle reliably.
+  // Also remove the "blocked" toast to avoid false positives with certain browsers.
+  let w = null;
+  try { w = window.open('about:blank', '_blank'); } catch(_) {}
+
+  // If truly blocked, just exit silently; the Thank-You page stays usable.
+  if (!w) return;
+
+  const markers = (data?.targeting?.geography?.locations || []).map(loc => ({
+    lat: Number(loc.lat)||0, lng: Number(loc.lng)||0, label: loc.address||""
+  })).filter(m => m.lat && m.lng);
+
+  const html = `<!DOCTYPE html><html><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Printable Summary</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  body{font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;margin:16px}
+  h1{font-size:18px;margin:0 0 8px 0}
+  .muted{color:#64748b;font-size:12px;margin-bottom:10px}
+  #map{height:420px;border:1px solid #e5e7eb;border-radius:12px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .card{border:1px solid #e5e7eb;border-radius:12px;padding:10px;background:#fff}
+  .row{display:flex;gap:6px}
+  .lbl{min-width:140px;color:#64748b}
+  @media print { .no-print{display:none} body{margin:0} }
+</style>
+</head>
+<body>
+  <h1>Mailer Request — Summary</h1>
+  <div class="muted">Printable view (map centered on submitted locations; overlays removed)</div>
+  <div id="map"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="row"><div class="lbl">Name</div><div>${_escHTML(data?.contact?.firstName)} ${_escHTML(data?.contact?.lastName)}</div></div>
+      <div class="row"><div class="lbl">Business</div><div>${_escHTML(data?.contact?.businessName)}</div></div>
+      <div class="row"><div class="lbl">Email</div><div>${_escHTML(data?.contact?.email)}</div></div>
+      <div class="row"><div class="lbl">Phone</div><div>${_escHTML(data?.contact?.phone)}</div></div>
+    </div>
+    <div class="card">
+      <div class="row"><div class="lbl">Audience</div><div>${_escHTML(data?.targeting?.audienceType)}</div></div>
+      <div class="row"><div class="lbl">ZIPs/Cities</div><div>${_escHTML(data?.targeting?.areasText)}</div></div>
+      <div class="row"><div class="lbl">Mailer Type</div><div>${_escHTML(data?.campaign?.mailerType)}</div></div>
+      <div class="row"><div class="lbl">Size</div><div>${_escHTML(data?.campaign?.mailerSize || data?.campaign?.customSize)}</div></div>
+      <div class="row"><div class="lbl">Target Qty</div><div>${_escHTML(data?.campaign?.targetQty)}</div></div>
+    </div>
+  </div>
+
+  <p class="no-print" style="margin-top:12px">
+    <button onclick="window.print()">Print</button>
+  </p>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+  <script>
+    (function(){
+      const markers = ${JSON.stringify(markers)};
+      const map = L.map('map').setView([37.0298, -76.3452], 7);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+      const ms = [];
+      for (const m of markers){
+        const mk = L.marker([m.lat, m.lng]).addTo(map);
+        if (m.label) mk.bindTooltip(m.label);
+        ms.push(mk);
+      }
+      if (ms.length){
+        const fg = L.featureGroup(ms);
+        map.fitBounds(fg.getBounds().pad(0.2));
+      }
+    })();
+  <\/script>
+</body></html>`.trim();
+
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
+// === End Thank-You + Toast + Printable (NEW) =================================
+
+// ---- SUBMIT HANDLER (ADD THIS) ---------------------------------------------
+document.getElementById("mailerForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  // If using Radius, require that rings are saved for all pins
+  const useRadiusSelect = document.getElementById("useRadius");
+  const usingRadius = useRadiusSelect && useRadiusSelect.value === "Yes";
+  if (usingRadius && !__radiusSaved) {
+    showToast("Please save your radius rings first.", true);
+    return;
+  }
+
+  // Prevent accidental double-submits within the same session
+  if (sessionStorage.getItem("dm_submitted") === "1") {
+    const last = sessionStorage.getItem("dm_last_payload");
+    try { renderThankYou(JSON.parse(last || "{}")); } catch { renderThankYou({}); }
+    return;
+  }
+
+  // Build payload from current form state
+  const data = buildPayload();
+
+  // Optional artwork upload → data URL
+  const fileInput = document.getElementById("artUpload");
+  const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+  if (file) {
+    data.campaign.uploadName = file.name;
+    data.campaign.uploadType = file.type;
+    try { data.campaign.upload = await fileToDataURL(file); } catch {}
+  }
+
+  // Disable the button during submit
+  const btn = document.getElementById("submitBtn");
+  if (btn) btn.disabled = true;
+
+  try {
+    await fetch(INTEGRATIONS.WEBHOOK_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify(data)
+    });
+
+    // Mark the session to block re-submits and allow refresh->Thank-You
+    sessionStorage.setItem("dm_submitted", "1");
+    sessionStorage.setItem("dm_last_payload", JSON.stringify(data));
+
+    // Swap to the Thank-You screen
+    renderThankYou(data);
+  } catch (err) {
+    showToast("Submission failed. Please try again.", true);
+    if (btn) btn.disabled = false;
+  }
+});
+// ---- END SUBMIT HANDLER -----------------------------------------------------
+
+});
+
+function fileToDataURL(file){
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+}
+</script>
+</body>
+</html>
