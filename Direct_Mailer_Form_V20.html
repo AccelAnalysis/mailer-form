@@ -1078,7 +1078,39 @@ function buildPayload() {
    FORM SUBMISSION
    ------------------------------------------------- */
 window.addEventListener("DOMContentLoaded", () => {
-  initMap();
+  // Initialize map
+initMap();
+
+/* ---- Leaflet "grey map in iframe" hardening ----
+   Ensures the map requests tiles after the iframe is fully laid out.
+   Works around sandboxed/embedded lazy layout timing on GoDaddy.
+*/
+const forceResize = () => {
+  try {
+    if (window.map && typeof window.map.invalidateSize === "function") {
+      window.map.invalidateSize(false);
+    }
+  } catch (e) {}
+};
+
+// 1) After the next two animation frames (post-paint)
+requestAnimationFrame(() => requestAnimationFrame(forceResize));
+
+// 2) After the window fully loads (covers slow fonts/CSS/layout)
+window.addEventListener("load", () => setTimeout(forceResize, 150));
+
+// 3) Watch the map container for any size changes and re-run
+const container =
+  document.getElementById("radius-map") ||
+  document.getElementById("map") ||
+  document.querySelector(".leaflet-container");
+
+if ("ResizeObserver" in window && container) {
+  const ro = new ResizeObserver(() => setTimeout(forceResize, 0));
+  ro.observe(container);
+}
+/* ---- end hardening ---- */
+
 
 // If already submitted this session, show Thank-You immediately
 const last = sessionStorage.getItem("dm_last_payload");
