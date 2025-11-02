@@ -1441,34 +1441,22 @@ const allowAutoOpen = wantsVM && canOpen;
  wrap.innerHTML = `
   <div class="content" style="padding:24px">
     <h2 style="margin:0 0 6px 0">Thanks! Your request has been submitted.</h2>
-    <p class="muted" style="margin:0 0 16px 0">
-      We’ll review and follow up within one business day.
-    </p>
+    <p class="muted" stylfunction renderThankYou(data){
+  const wrap =
+    document.querySelector(".brand-body") ||
+    document.getElementById("mailerForm")?.parentElement ||
+    document.body;
 
-    <div class="note" id="vm-note" style="margin-bottom:16px">
-      ${
-        allowAutoOpen
-          ? 'Your meeting scheduler will open in a new tab in <strong><span id="vm-count">7</span></strong> seconds. If it doesn’t, click the button below.'
-          : 'If you’d prefer a virtual meeting, tap the button below to open the scheduler.'
-      }
-    </div>
+  const wantsVM = data?.preferences?.followUpPreference === "Virtual Meeting";
+  const canOpen = Boolean(INTEGRATIONS?.BOOKINGS_URL);
+  const allowAutoOpen = wantsVM && canOpen; // always try in the iframe
 
-    <div style="display:flex; gap:10px; flex-wrap:wrap">
-      <a id="link-printable" class="btn" href="#" target="_blank" rel="noopener">Open Printable Summary</a>
-      <a id="link-scheduler" class="btn primary" href="${INTEGRATIONS.BOOKINGS_URL}" target="_blank" rel="noopener">Open Meeting Scheduler</a>
-    </div>
-
-    <p class="muted" style="margin-top:8px">
-      New tab opens on tap. If blocked, allow pop-ups for this site.
-    </p>
-  </div>
-`;
-// Make “Open Meeting Scheduler” use the hardened path
-const schedLink = document.getElementById('link-scheduler');
-schedLink?.addEventListener('click', (ev) => {
-  ev.preventDefault();
-  openExternalNoOpener(INTEGRATIONS.BOOKINGS_URL);
-});
+  wrap.innerHTML = `
+    <div class="content" style="padding:24px">
+      <h2 style="margin:0 0 6px 0">Thanks! Your request has been submitted.</h2>
+      <p class="muted" style="margin:0 0 16px 0">
+        We’ll review and follow up within one business day.
+      </p>
 
       <div class="note" id="vm-note" style="margin-bottom:16px">
         ${
@@ -1480,8 +1468,7 @@ schedLink?.addEventListener('click', (ev) => {
 
       <div style="display:flex; gap:10px; flex-wrap:wrap">
         <a id="link-printable" class="btn" href="#" target="_blank" rel="noopener">Open Printable Summary</a>
-	   <a id="link-scheduler" class="btn primary" href="${INTEGRATIONS.BOOKINGS_URL}" target="_blank" rel="noopener">Open Meeting Scheduler</a>
-
+        <a id="link-scheduler" class="btn primary" href="${INTEGRATIONS.BOOKINGS_URL}" target="_blank" rel="noopener">Open Meeting Scheduler</a>
       </div>
 
       <p class="muted" style="margin-top:8px">
@@ -1490,7 +1477,14 @@ schedLink?.addEventListener('click', (ev) => {
     </div>
   `;
 
-  // Make printable link a Blob URL at gesture-time (mobile-safe)
+  // Harden the Meeting link for Firefox COOP and iframes
+  const schedLink = document.getElementById('link-scheduler');
+  schedLink?.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    openExternalNoOpener(INTEGRATIONS.BOOKINGS_URL);
+  });
+
+  // Printable link → build Blob URL at gesture-time
   const linkPrintable = document.getElementById("link-printable");
   const prepareBlobHref = () => {
     const url = buildPrintableBlobURL(data);
@@ -1501,22 +1495,21 @@ schedLink?.addEventListener('click', (ev) => {
     linkPrintable.addEventListener(evt, prepareBlobHref, { passive:true });
   });
 
-  // Optional desktop auto-open (avoid on iOS/iframes)
+  // Countdown auto-open (uses no-opener helper)
   const cntNode = document.getElementById("vm-count");
   if (allowAutoOpen) {
-  let secs = 7, opened = false;
-  const tryOpen = () => {
-    if (opened) return;
-    opened = true;
-    openExternalNoOpener(INTEGRATIONS.BOOKINGS_URL);
-  };
-  const timer = setInterval(() => {
-    secs -= 1;
-    if (cntNode) cntNode.textContent = String(Math.max(secs, 0));
-    if (secs <= 0) { clearInterval(timer); tryOpen(); }
-  }, 1000);
-}
-
+    let secs = 7, opened = false;
+    const tryOpen = () => {
+      if (opened) return;
+      opened = true;
+      openExternalNoOpener(INTEGRATIONS.BOOKINGS_URL);
+    };
+    const timer = setInterval(() => {
+      secs -= 1;
+      if (cntNode) cntNode.textContent = String(Math.max(secs, 0));
+      if (secs <= 0) { clearInterval(timer); tryOpen(); }
+    }, 1000);
+  }
 }
 
 // === End Thank-You + Toast + Printable (MOBILE-SAFE) =========================
