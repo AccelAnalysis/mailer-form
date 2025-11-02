@@ -7,6 +7,15 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// If unpkg is slow/blocked in the iframe, inject jsDelivr as a backup.
+if (!window.L || typeof L.map !== 'function') {
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+  s.defer = true;
+  document.head.appendChild(s);
+}
+</script>
 
 <style>
 /* Prevent theme CSS from shrinking Leaflet tiles in some builders */
@@ -530,30 +539,35 @@ function initMap() {
 map = L.map('radius-map', { zoomSnap: 0.25, zoomDelta: 0.5 }).setView([37.0298, -76.3452], 9);
 window.map = map; // expose for hardening callbacks
 
-// Try primary (no subdomain) first; fall back to {s}.tile if needed
-const _primary = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  crossOrigin: true,
-  updateWhenIdle: false,
-  updateWhenZooming: true,
-  keepBuffer: 6,
+// Robust basemap with multiple fallbacks (works better in GoDaddy iframe)
+const layerOSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  detectRetina: true,
+  maxZoom: 19,
   attribution: '&copy; OpenStreetMap contributors'
 });
-const _fallback = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  crossOrigin: true,
+const layerOSMabc = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   subdomains: 'abc',
-  updateWhenIdle: false,
-  updateWhenZooming: true,
-  keepBuffer: 6
+  maxZoom: 19
 });
-let _usingFallback = false;
-_primary.on('tileerror', () => {
-  if (!_usingFallback) {
-    _usingFallback = true;
-    try { map.removeLayer(_primary); } catch(_) {}
-    _fallback.addTo(map);
-  }
+const layerCarto = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  subdomains: 'abcd',
+  maxZoom: 20,
+  attribution: '&copy; OpenStreetMap contributors & Carto'
 });
-_primary.addTo(map);
+
+let active = layerOSM.addTo(map);
+function swap(next){
+  try { map.removeLayer(active); } catch(e){}
+  active = next.addTo(map);
+}
+
+// If OSM single-host errors → swap to multi-host;
+// if multi-host errors → swap to Carto light.
+layerOSM.on('tileerror', () => swap(layerOSMabc));
+layerOSMabc.on('tileerror', () => swap(layerCarto));
+
+// Nudge size as soon as first tile arrives (fixes “grey on first paint”)
+active.once('tileload', () => setTimeout(() => map.invalidateSize(false), 0));
 
 // Kick Leaflet to measure after it’s ready / visible (fixes “grey map”)
 const _nudge = () => map && map.invalidateSize(false);
@@ -1166,8 +1180,21 @@ function buildPayload() {
    FORM SUBMISSION
    ------------------------------------------------- */
 window.addEventListener("DOMContentLoaded", () => {
-  // Initialize map
-initMap();
+// Initialize map (wait until Leaflet is actually present)
+function ensureLeafletReady(cb){
+  if (window.L && typeof L.map === 'function'){ cb(); return; }
+  let tries = 0, iv = setInterval(()=>{
+    if (window.L && typeof L.map === 'function'){ clearInterval(iv); cb(); }
+    else if (++tries > 40){ // ~4s – last-ditch: inject fallback, then run
+      clearInterval(iv);
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+      s.onload = () => cb();
+      document.head.appendChild(s);
+    }
+  }, 100);
+}
+ensureLeafletReady(initMap);
 
 /* ---- Leaflet "grey map in iframe" hardening ----
    Ensures the map requests tiles after the iframe is fully laid out.
@@ -1175,9 +1202,10 @@ initMap();
 */
 const forceResize = () => {
   try {
-    if (map && typeof window.map.invalidateSize === "function") {
-      map.invalidateSize(false);
-    }
+if (map && typeof map.invalidateSize === "function") {
+  map.invalidateSize(false);
+}
+
   } catch (e) {}
 };
 
