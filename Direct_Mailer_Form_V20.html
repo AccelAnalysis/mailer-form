@@ -474,7 +474,25 @@ const INTEGRATIONS = {
   WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbzbT80wsdzU_gXROGd9fZAWfqbHqyecpMEsAzNt4IKJucIbEG-rlagawDL9E-OUMb9B/exec",
   BOOKINGS_URL: "https://outlook.office.com/book/AccelAnalysis1@NETORGFT15328873.onmicrosoft.com/s/LUKxf3eKv0igPKL4Tbkb-A2?ismsaljsauthenabled"
 };
-/* Mailer Size Options by Type */
+function openExternalNoOpener(url){
+  try {
+    // Preferred: real <a> element click with rel=noopener (bypasses COOP warnings)
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';       // keep JUST noopener to avoid some FF quirks
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return;
+  } catch(e) {}
+  try {
+    // Fallback: window.open with noopener feature
+    window.open(url, '_blank', 'noopener');
+  } catch(e) {}
+}
+	/* Mailer Size Options by Type */
 const SIZE_OPTIONS = {
   "Postcard": [
     "4 × 6 in",
@@ -1420,13 +1438,32 @@ const canOpen = Boolean(INTEGRATIONS?.BOOKINGS_URL);
 // Always attempt auto-open (GoDaddy iframe is sandboxed with allow-popups-to-escape-sandbox)
 const allowAutoOpen = wantsVM && canOpen;
 
-  wrap.innerHTML = `
-    <div class="content" style="padding:24px">
-      <h2 style="margin:0 0 6px 0">Thanks! Your request has been submitted.</h2>
-      <p class="muted" style="margin:0 0 16px 0">
-        We’ll review and follow up within one business day.
-      </p>
-// Ensure manual taps also use the hard no-opener path (prevents FF COOP screen)
+ wrap.innerHTML = `
+  <div class="content" style="padding:24px">
+    <h2 style="margin:0 0 6px 0">Thanks! Your request has been submitted.</h2>
+    <p class="muted" style="margin:0 0 16px 0">
+      We’ll review and follow up within one business day.
+    </p>
+
+    <div class="note" id="vm-note" style="margin-bottom:16px">
+      ${
+        allowAutoOpen
+          ? 'Your meeting scheduler will open in a new tab in <strong><span id="vm-count">7</span></strong> seconds. If it doesn’t, click the button below.'
+          : 'If you’d prefer a virtual meeting, tap the button below to open the scheduler.'
+      }
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap">
+      <a id="link-printable" class="btn" href="#" target="_blank" rel="noopener">Open Printable Summary</a>
+      <a id="link-scheduler" class="btn primary" href="${INTEGRATIONS.BOOKINGS_URL}" target="_blank" rel="noopener">Open Meeting Scheduler</a>
+    </div>
+
+    <p class="muted" style="margin-top:8px">
+      New tab opens on tap. If blocked, allow pop-ups for this site.
+    </p>
+  </div>
+`;
+// Make “Open Meeting Scheduler” use the hardened path
 const schedLink = document.getElementById('link-scheduler');
 schedLink?.addEventListener('click', (ev) => {
   ev.preventDefault();
@@ -1532,25 +1569,6 @@ document.getElementById("mailerForm").addEventListener("submit", async (e) => {
 
     // Swap to the Thank-You screen
 // Open external URL in a new tab with a hard "no-opener" guarantee (works in iframes)
-function openExternalNoOpener(url){
-  try {
-    // Preferred: real <a> element click with rel=noopener (bypasses COOP warnings)
-    const a = document.createElement('a');
-    a.href = url;
-    a.target = '_blank';
-    a.rel = 'noopener';       // keep JUST noopener to avoid some FF quirks
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    return;
-  } catch(e) {}
-  try {
-    // Fallback: window.open with noopener feature
-    window.open(url, '_blank', 'noopener');
-  } catch(e) {}
-}
-
 	  
     renderThankYou(data);
   } catch (err) {
