@@ -1433,20 +1433,6 @@ function renderThankYou(data){
     document.getElementById("mailerForm")?.parentElement ||
     document.body;
 
-const wantsVM = data?.preferences?.followUpPreference === "Virtual Meeting";
-const canOpen = Boolean(INTEGRATIONS?.BOOKINGS_URL);
-// Always attempt auto-open (GoDaddy iframe is sandboxed with allow-popups-to-escape-sandbox)
-const allowAutoOpen = wantsVM && canOpen;
-
- wrap.innerHTML = `
-  <div class="content" style="padding:24px">
-    <h2 style="margin:0 0 6px 0">Thanks! Your request has been submitted.</h2>
-    <p class="muted" stylfunction renderThankYou(data){
-  const wrap =
-    document.querySelector(".brand-body") ||
-    document.getElementById("mailerForm")?.parentElement ||
-    document.body;
-
   const wantsVM = data?.preferences?.followUpPreference === "Virtual Meeting";
   const canOpen = Boolean(INTEGRATIONS?.BOOKINGS_URL);
   const allowAutoOpen = wantsVM && canOpen; // always try in the iframe
@@ -1477,7 +1463,7 @@ const allowAutoOpen = wantsVM && canOpen;
     </div>
   `;
 
-  // Harden the Meeting link for Firefox COOP and iframes
+  // Make the Meeting link use the hardened no-opener path
   const schedLink = document.getElementById('link-scheduler');
   schedLink?.addEventListener('click', (ev) => {
     ev.preventDefault();
@@ -1495,7 +1481,7 @@ const allowAutoOpen = wantsVM && canOpen;
     linkPrintable.addEventListener(evt, prepareBlobHref, { passive:true });
   });
 
-  // Countdown auto-open (uses no-opener helper)
+  // Countdown auto-open (uses the same hardened helper)
   const cntNode = document.getElementById("vm-count");
   if (allowAutoOpen) {
     let secs = 7, opened = false;
