@@ -8,6 +8,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+	/* Prevent theme CSS from shrinking Leaflet tiles in some builders */
+.leaflet-container img { max-width: none !important; }
+
 <style>
   :root{
     --bg:#ffffff; --card:#f9fafb; --ink:#0f172a; --muted:#64748b; --accent:#2F5597; --accent-2:#0ea5e9;
@@ -15,7 +18,10 @@
     --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444;
   }
   *{box-sizing:border-box}
-  html,body{height:1800px;margin:0;color:var(--ink);font-family:ui-sans-serif, system-ui, Segoe UI, Roboto, Arial}
+
+	/* Let the document size naturally; fixed height can confuse iframes */
+	html,body{min-height:100%;height:auto;margin:0;color:var(--ink);font-family:ui-sans-serif, system-ui, Segoe UI, Roboto, Arial}
+
   
   /* FULL-PAGE SKYLINE BACKGROUND */
 /* V16 — add the same transparent blue overlay used in V6 */
@@ -520,9 +526,47 @@ function initMap() {
    useRadius.addEventListener("change", toggleMap);
 
 
-  // Init map
-  map = L.map('radius-map').setView([37.0298, -76.3452], 9);  // start wider
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+// Init map (resilient within iframes)
+map = L.map('radius-map', { zoomSnap: 0.25, zoomDelta: 0.5 }).setView([37.0298, -76.3452], 9);
+
+// Try primary (no subdomain) first; fall back to {s}.tile if needed
+const _primary = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  crossOrigin: true,
+  updateWhenIdle: false,
+  updateWhenZooming: true,
+  keepBuffer: 6,
+  attribution: '&copy; OpenStreetMap contributors'
+});
+const _fallback = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  crossOrigin: true,
+  subdomains: 'abc',
+  updateWhenIdle: false,
+  updateWhenZooming: true,
+  keepBuffer: 6
+});
+let _usingFallback = false;
+_primary.on('tileerror', () => {
+  if (!_usingFallback) {
+    _usingFallback = true;
+    try { map.removeLayer(_primary); } catch(_) {}
+    _fallback.addTo(map);
+  }
+});
+_primary.addTo(map);
+
+// Kick Leaflet to measure after it’s ready / visible (fixes “grey map”)
+const _nudge = () => map && map.invalidateSize(false);
+map.whenReady(() => setTimeout(_nudge, 50));
+window.addEventListener('load', () => setTimeout(_nudge, 50));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(_nudge, 50); });
+
+// If the container was late to size (e.g., builder lazy loads), retry a few times
+let _retries = 0;
+const _retryTimer = setInterval(() => {
+  _nudge();
+  if (++_retries > 12) clearInterval(_retryTimer); // ~6s total
+}, 500);
+
 
   // Default & “done” icons
   const defaultIcon = L.icon({
@@ -897,8 +941,10 @@ refreshGeogHighlights();
 })();
 
 // --- Keep map sized correctly across orientation / accordion / popup changes ---
-const __ro = new ResizeObserver(() => map && map.invalidateSize(false));
-__ro.observe(document.documentElement);
+if (typeof ResizeObserver !== 'undefined') {
+  const __ro = new ResizeObserver(() => map && map.invalidateSize(false));
+  __ro.observe(document.documentElement);
+}
 window.addEventListener('orientationchange', ()=> setTimeout(()=>map.invalidateSize(false), 250));
 map.on('popupopen', ()=> setTimeout(()=>map.invalidateSize(false), 100));
 
