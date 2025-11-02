@@ -1377,12 +1377,17 @@ function buildPrintableHTML(data){
   </p>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
-  <script>
-    (function(){
-      const ms = ${'${JSON.stringify((data?.targeting?.geography?.locations || [])'}.map(loc => ({ lat:Number(loc.lat)||0, lng:Number(loc.lng)||0, label: loc.address||"" })).filter(m => m.lat && m.lng))};
+ <script>
+  (function(){
+    const ms = ${JSON.stringify(
+      (data?.targeting?.geography?.locations || [])
+        .map(loc => ({ lat:Number(loc.lat)||0, lng:Number(loc.lng)||0, label: loc.address||"" }))
+        .filter(m => m.lat && m.lng)
+    )};
 
-      const map = L.map('map').setView([37.0298, -76.3452], 7);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const map = L.map('map', { zoomSnap:0.25, zoomDelta:0.5 }).setView([37.0298, -76.3452], 7);
+    const layerOSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
+    layerOSM.once('tileload', () => setTimeout(() => map.invalidateSize(false), 0));
 
       const arr = [];
       for (const m of ms){
@@ -1410,9 +1415,10 @@ function renderThankYou(data){
     document.getElementById("mailerForm")?.parentElement ||
     document.body;
 
-  const wantsVM = data?.preferences?.followUpPreference === "Virtual Meeting";
-  const canOpen = Boolean(INTEGRATIONS?.BOOKINGS_URL);
-  const allowAutoOpen = wantsVM && canOpen && !_isIOS() && !_inIframe();
+const wantsVM = data?.preferences?.followUpPreference === "Virtual Meeting";
+const canOpen = Boolean(INTEGRATIONS?.BOOKINGS_URL);
+// Always attempt auto-open (GoDaddy iframe is sandboxed with allow-popups-to-escape-sandbox)
+const allowAutoOpen = wantsVM && canOpen;
 
   wrap.innerHTML = `
     <div class="content" style="padding:24px">
@@ -1431,7 +1437,8 @@ function renderThankYou(data){
 
       <div style="display:flex; gap:10px; flex-wrap:wrap">
         <a id="link-printable" class="btn" href="#" target="_blank" rel="noopener">Open Printable Summary</a>
-        <a id="link-scheduler" class="btn primary" href="${'${INTEGRATIONS.BOOKINGS_URL}'}" target="_blank" rel="noopener noreferrer">Open Meeting Scheduler</a>
+	    <a id="link-scheduler" class="btn primary" href="${INTEGRATIONS.BOOKINGS_URL}" target="_blank" rel="noopener noreferrer">Open Meeting Scheduler</a>
+
       </div>
 
       <p class="muted" style="margin-top:8px">
@@ -1454,19 +1461,23 @@ function renderThankYou(data){
   // Optional desktop auto-open (avoid on iOS/iframes)
   const cntNode = document.getElementById("vm-count");
   if (allowAutoOpen) {
-    let secs = 7, opened = false;
-    const timer = setInterval(() => {
-      secs -= 1;
-      if (cntNode) cntNode.textContent = String(Math.max(secs, 0));
-      if (secs <= 0) {
-        clearInterval(timer);
-        if (!opened) {
-          document.getElementById("link-scheduler")?.click();
-          opened = true;
-        }
-      }
-    }, 1000);
-  }
+  let secs = 7, opened = false;
+  const tryOpen = () => {
+    if (opened) return;
+    opened = true;
+    // 1) Simulated user click
+    const a = document.getElementById("link-scheduler");
+    if (a && typeof a.click === "function") a.click();
+    // 2) Fallback
+    try { window.open(INTEGRATIONS.BOOKINGS_URL, "_blank", "noopener,noreferrer"); } catch(e){}
+  };
+  const timer = setInterval(() => {
+    secs -= 1;
+    if (cntNode) cntNode.textContent = String(Math.max(secs, 0));
+    if (secs <= 0) { clearInterval(timer); tryOpen(); }
+  }, 1000);
+}
+
 }
 
 // === End Thank-You + Toast + Printable (MOBILE-SAFE) =========================
