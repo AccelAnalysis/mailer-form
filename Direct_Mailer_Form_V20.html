@@ -528,6 +528,7 @@ function initMap() {
 
 // Init map (resilient within iframes)
 map = L.map('radius-map', { zoomSnap: 0.25, zoomDelta: 0.5 }).setView([37.0298, -76.3452], 9);
+window.map = map; // expose for hardening callbacks
 
 // Try primary (no subdomain) first; fall back to {s}.tile if needed
 const _primary = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1174,8 +1175,8 @@ initMap();
 */
 const forceResize = () => {
   try {
-    if (window.map && typeof window.map.invalidateSize === "function") {
-      window.map.invalidateSize(false);
+    if (map && typeof window.map.invalidateSize === "function") {
+      map.invalidateSize(false);
     }
   } catch (e) {}
 };
@@ -1266,19 +1267,7 @@ refreshSizeOptions();
   });
 
 // === Thank-You + Toast + Printable (NEW) ====================================
-
-// Fallback HTML escaper if escapeHtml isn’t defined earlier (your file defines it; this is defensive)
-const _escHTML = (typeof escapeHtml === 'function')
-  ? escapeHtml
-  : (s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
-
-function showToast(// === Thank-You + Toast + Printable (MOBILE-SAFE) ============================
-
-// Simple toast (kept same API as before)
-function showToast(msg, isError){
-  let t = document.getElementById("inline-toast");
-  if (!t) {
-    t = document.createElement// === Thank-You + Toast + Printable (MOBILE-SAFE) ============================
+// === Thank-You + Toast + Printable (MOBILE-SAFE) ============================
 
 // Simple toast
 function showToast(msg, isError){
