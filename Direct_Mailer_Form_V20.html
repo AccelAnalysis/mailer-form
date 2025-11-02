@@ -1426,6 +1426,12 @@ const allowAutoOpen = wantsVM && canOpen;
       <p class="muted" style="margin:0 0 16px 0">
         We’ll review and follow up within one business day.
       </p>
+// Ensure manual taps also use the hard no-opener path (prevents FF COOP screen)
+const schedLink = document.getElementById('link-scheduler');
+schedLink?.addEventListener('click', (ev) => {
+  ev.preventDefault();
+  openExternalNoOpener(INTEGRATIONS.BOOKINGS_URL);
+});
 
       <div class="note" id="vm-note" style="margin-bottom:16px">
         ${
@@ -1437,7 +1443,7 @@ const allowAutoOpen = wantsVM && canOpen;
 
       <div style="display:flex; gap:10px; flex-wrap:wrap">
         <a id="link-printable" class="btn" href="#" target="_blank" rel="noopener">Open Printable Summary</a>
-	    <a id="link-scheduler" class="btn primary" href="${INTEGRATIONS.BOOKINGS_URL}" target="_blank" rel="noopener noreferrer">Open Meeting Scheduler</a>
+	   <a id="link-scheduler" class="btn primary" href="${INTEGRATIONS.BOOKINGS_URL}" target="_blank" rel="noopener">Open Meeting Scheduler</a>
 
       </div>
 
@@ -1465,11 +1471,7 @@ const allowAutoOpen = wantsVM && canOpen;
   const tryOpen = () => {
     if (opened) return;
     opened = true;
-    // 1) Simulated user click
-    const a = document.getElementById("link-scheduler");
-    if (a && typeof a.click === "function") a.click();
-    // 2) Fallback
-    try { window.open(INTEGRATIONS.BOOKINGS_URL, "_blank", "noopener,noreferrer"); } catch(e){}
+    openExternalNoOpener(INTEGRATIONS.BOOKINGS_URL);
   };
   const timer = setInterval(() => {
     secs -= 1;
@@ -1529,6 +1531,27 @@ document.getElementById("mailerForm").addEventListener("submit", async (e) => {
     sessionStorage.setItem("dm_last_payload", JSON.stringify(data));
 
     // Swap to the Thank-You screen
+// Open external URL in a new tab with a hard "no-opener" guarantee (works in iframes)
+function openExternalNoOpener(url){
+  try {
+    // Preferred: real <a> element click with rel=noopener (bypasses COOP warnings)
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';       // keep JUST noopener to avoid some FF quirks
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return;
+  } catch(e) {}
+  try {
+    // Fallback: window.open with noopener feature
+    window.open(url, '_blank', 'noopener');
+  } catch(e) {}
+}
+
+	  
     renderThankYou(data);
   } catch (err) {
     showToast("Submission failed. Please try again.", true);
