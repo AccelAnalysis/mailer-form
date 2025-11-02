@@ -8,10 +8,10 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-	/* Prevent theme CSS from shrinking Leaflet tiles in some builders */
+<style>
+/* Prevent theme CSS from shrinking Leaflet tiles in some builders */
 .leaflet-container img { max-width: none !important; }
 
-<style>
   :root{
     --bg:#ffffff; --card:#f9fafb; --ink:#0f172a; --muted:#64748b; --accent:#2F5597; --accent-2:#0ea5e9;
     --ring:#e5e7eb; --r:14px; --r-sm:10px; --shadow:0 10px 30px rgba(0,0,0,.10);
@@ -1278,6 +1278,12 @@ function showToast(// === Thank-You + Toast + Printable (MOBILE-SAFE) ==========
 function showToast(msg, isError){
   let t = document.getElementById("inline-toast");
   if (!t) {
+    t = document.createElement// === Thank-You + Toast + Printable (MOBILE-SAFE) ============================
+
+// Simple toast
+function showToast(msg, isError){
+  let t = document.getElementById("inline-toast");
+  if (!t) {
     t = document.createElement("div");
     t.id = "inline-toast";
     t.style.position = "fixed";
@@ -1356,9 +1362,7 @@ function buildPrintableHTML(data){
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
   <script>
     (function(){
-      const ms = ${JSON.stringify((data?.targeting?.geography?.locations || [])
-        .map(loc => ({ lat:Number(loc.lat)||0, lng:Number(loc.lng)||0, label: loc.address||"" }))
-        .filter(m => m.lat && m.lng))};
+      const ms = ${'${JSON.stringify((data?.targeting?.geography?.locations || [])'}.map(loc => ({ lat:Number(loc.lat)||0, lng:Number(loc.lng)||0, label: loc.address||"" })).filter(m => m.lat && m.lng))};
 
       const map = L.map('map').setView([37.0298, -76.3452], 7);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -1410,7 +1414,7 @@ function renderThankYou(data){
 
       <div style="display:flex; gap:10px; flex-wrap:wrap">
         <a id="link-printable" class="btn" href="#" target="_blank" rel="noopener">Open Printable Summary</a>
-        <a id="link-scheduler" class="btn primary" href="${INTEGRATIONS.BOOKINGS_URL}" target="_blank" rel="noopener noreferrer">Open Meeting Scheduler</a>
+        <a id="link-scheduler" class="btn primary" href="${'${INTEGRATIONS.BOOKINGS_URL}'}" target="_blank" rel="noopener noreferrer">Open Meeting Scheduler</a>
       </div>
 
       <p class="muted" style="margin-top:8px">
@@ -1426,7 +1430,6 @@ function renderThankYou(data){
     linkPrintable.href = url;
     setTimeout(()=> URL.revokeObjectURL(url), 60000);
   };
-  // Set before navigation occurs
   ['pointerdown','touchstart','mousedown','click'].forEach(evt=>{
     linkPrintable.addEventListener(evt, prepareBlobHref, { passive:true });
   });
