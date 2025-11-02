@@ -346,6 +346,19 @@ body{
         max-width: none;            /* undo any tiny max-width */
         text-align: left;           /* undo right alignment if present */
       }
+		/* === Mobile “pivot” for map UI (move overlays below map) === */
+@media (max-width: 640px){
+  #map-wrap{ height: 64vh; }
+  #radius-map{ height: 64vh; }
+  .map-overlay{
+    position: static !important;
+    transform: none !important;
+    max-width: 100% !important;
+    margin: 8px 0 !important;
+    background: rgba(255,255,255,.95);
+  }
+}
+
     </style>
 
     <div class="stack">
@@ -860,6 +873,34 @@ refreshGeogHighlights();
 
    // Initial size refresh (map is always visible now)
    toggleMap();
+// --- Mobile pivot: relocate overlays out of the map so they never block taps ---
+(function pivotOverlaysForMobile(){
+  const isSmall = window.matchMedia('(max-width: 640px)').matches;
+  if (!isSmall) return;
+
+  const wrap = document.getElementById('map-wrap');
+  const panel = document.createElement('div');
+  panel.id = 'mobile-controls';
+  panel.style.marginTop = '8px';
+
+  ['overlaySearch','geo-overlay'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el){
+      el.classList.remove('overlay-top-center','overlay-bottom-left');
+      panel.appendChild(el);
+    }
+  });
+  wrap.insertAdjacentElement('afterend', panel);
+
+  // Recompute map size after DOM changes
+  requestAnimationFrame(()=>requestAnimationFrame(()=>map.invalidateSize(false)));
+})();
+
+// --- Keep map sized correctly across orientation / accordion / popup changes ---
+const __ro = new ResizeObserver(() => map && map.invalidateSize(false));
+__ro.observe(document.documentElement);
+window.addEventListener('orientationchange', ()=> setTimeout(()=>map.invalidateSize(false), 250));
+map.on('popupopen', ()=> setTimeout(()=>map.invalidateSize(false), 100));
 
 }
 
@@ -1185,6 +1226,9 @@ const _escHTML = (typeof escapeHtml === 'function')
   ? escapeHtml
   : (s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
 
+function showToast(// === Thank-You + Toast + Printable (MOBILE-SAFE) ============================
+
+// Simple toast (kept same API as before)
 function showToast(msg, isError){
   let t = document.getElementById("inline-toast");
   if (!t) {
@@ -1209,92 +1253,18 @@ function showToast(msg, isError){
   setTimeout(()=>{ t.style.display = "none"; }, 3000);
 }
 
-function renderThankYou(data){
-  const wrap =
-    document.querySelector(".brand-body") ||
-    document.getElementById("mailerForm")?.parentElement ||
-    document.body;
+// env helpers
+function _isIOS(){ return /iPad|iPhone|iPod/i.test(navigator.userAgent); }
+function _inIframe(){ try { return window.self !== window.top; } catch(e){ return true; } }
 
-  const wantsVM = data?.preferences?.followUpPreference === "Virtual Meeting";
-  const canOpen = Boolean(INTEGRATIONS?.BOOKINGS_URL);
-  const shouldAutoOpen = wantsVM && canOpen;
+// Build printable standalone HTML
+function buildPrintableHTML(data){
+  const _esc = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const markers = (data?.targeting?.geography?.locations || [])
+    .map(loc => ({ lat:Number(loc.lat)||0, lng:Number(loc.lng)||0, label: loc.address||"" }))
+    .filter(m => m.lat && m.lng);
 
-  wrap.innerHTML = `
-    <div class="content" style="padding:24px">
-      <h2 style="margin:0 0 6px 0">Thanks! Your request has been submitted.</h2>
-      <p class="muted" style="margin:0 0 16px 0">
-        We’ll review and follow up within one business day.
-      </p>
-
-      <div class="note" id="vm-note" style="margin-bottom:16px">
-        ${
-          shouldAutoOpen
-            ? `Your meeting scheduler will open in a new tab in <strong><span id="vm-count">7</span></strong> seconds. If it does not open, please allow pop-ups for this site, then click the <em>Open Meeting Scheduler</em> button below.`
-            : `If you’d prefer a virtual meeting, you can book one below.`
-        }
-      </div>
-
-      <div style="display:flex; gap:10px; flex-wrap:wrap">
-        <button id="btn-printable" class="btn">Open Printable Summary</button>
-        <button id="btn-scheduler" class="btn primary">Open Meeting Scheduler</button>
-      </div>
-
-      <p class="muted" style="margin-top:8px">
-        The scheduler opens in a new tab. If blocked, please check your popup blocker settings.
-      </p>
-    </div>
-  `;
-
-  // Wire buttons
-  const btnPrintable = document.getElementById("btn-printable");
-  const btnScheduler = document.getElementById("btn-scheduler");
-  const cntNode = document.getElementById("vm-count");
-
-  btnPrintable?.addEventListener("click", () => openPrintableSummary(data));
-  btnScheduler?.addEventListener("click", () => {
-    if (canOpen) {
-      opened = true; // prevent double-open if user clicks early
-      window.open(INTEGRATIONS.BOOKINGS_URL, "_blank", "noopener");
-    } else {
-      showToast("Scheduler not configured.", true);
-    }
-  });
-
-  // Auto-open after a 5s countdown, only when Virtual Meeting was selected
-  let opened = false;
-  if (shouldAutoOpen) {
-    let secs = 7;
-    const timer = setInterval(() => {
-      secs -= 1;
-      if (cntNode) cntNode.textContent = String(Math.max(secs, 0));
-
-      if (secs <= 0) {
-        clearInterval(timer);
-        if (!opened && canOpen) {
-          const w = window.open(INTEGRATIONS.BOOKINGS_URL, "_blank", "noopener");
-          // If popup blocked, nudge the user (message already says what to do)
-          if (!w) showToast("Popup blocked. Please allow pop-ups, then click the button below.", true);
-          opened = true;
-        }
-      }
-    }, 1000);
-  }
-}
-
-function openPrintableSummary(data){
-  // Use about:blank without "noopener" so Safari/Chromium return a window handle reliably.
-  // Also remove the "blocked" toast to avoid false positives with certain browsers.
-  let w = null;
-  try { w = window.open('about:blank', '_blank'); } catch(_) {}
-
-  // If truly blocked, just exit silently; the Thank-You page stays usable.
-  if (!w) return;
-
-  const markers = (data?.targeting?.geography?.locations || []).map(loc => ({
-    lat: Number(loc.lat)||0, lng: Number(loc.lng)||0, label: loc.address||""
-  })).filter(m => m.lat && m.lng);
-
-  const html = `<!DOCTYPE html><html><head>
+  return `<!DOCTYPE html><html><head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Printable Summary</title>
@@ -1308,27 +1278,28 @@ function openPrintableSummary(data){
   .card{border:1px solid #e5e7eb;border-radius:12px;padding:10px;background:#fff}
   .row{display:flex;gap:6px}
   .lbl{min-width:140px;color:#64748b}
+  @media (max-width:640px){ .grid{grid-template-columns:1fr} }
   @media print { .no-print{display:none} body{margin:0} }
 </style>
 </head>
 <body>
   <h1>Mailer Request — Summary</h1>
-  <div class="muted">Printable view (map centered on submitted locations; overlays removed)</div>
+  <div class="muted">Printable view (map centered on submitted locations)</div>
   <div id="map"></div>
 
   <div class="grid">
     <div class="card">
-      <div class="row"><div class="lbl">Name</div><div>${_escHTML(data?.contact?.firstName)} ${_escHTML(data?.contact?.lastName)}</div></div>
-      <div class="row"><div class="lbl">Business</div><div>${_escHTML(data?.contact?.businessName)}</div></div>
-      <div class="row"><div class="lbl">Email</div><div>${_escHTML(data?.contact?.email)}</div></div>
-      <div class="row"><div class="lbl">Phone</div><div>${_escHTML(data?.contact?.phone)}</div></div>
+      <div class="row"><div class="lbl">Name</div><div>${_esc(data?.contact?.firstName)} ${_esc(data?.contact?.lastName)}</div></div>
+      <div class="row"><div class="lbl">Business</div><div>${_esc(data?.contact?.businessName)}</div></div>
+      <div class="row"><div class="lbl">Email</div><div>${_esc(data?.contact?.email)}</div></div>
+      <div class="row"><div class="lbl">Phone</div><div>${_esc(data?.contact?.phone)}</div></div>
     </div>
     <div class="card">
-      <div class="row"><div class="lbl">Audience</div><div>${_escHTML(data?.targeting?.audienceType)}</div></div>
-      <div class="row"><div class="lbl">ZIPs/Cities</div><div>${_escHTML(data?.targeting?.areasText)}</div></div>
-      <div class="row"><div class="lbl">Mailer Type</div><div>${_escHTML(data?.campaign?.mailerType)}</div></div>
-      <div class="row"><div class="lbl">Size</div><div>${_escHTML(data?.campaign?.mailerSize || data?.campaign?.customSize)}</div></div>
-      <div class="row"><div class="lbl">Target Qty</div><div>${_escHTML(data?.campaign?.targetQty)}</div></div>
+      <div class="row"><div class="lbl">Audience</div><div>${_esc(data?.targeting?.audienceType)}</div></div>
+      <div class="row"><div class="lbl">ZIPs/Cities</div><div>${_esc(data?.targeting?.areasText)}</div></div>
+      <div class="row"><div class="lbl">Mailer Type</div><div>${_esc(data?.campaign?.mailerType)}</div></div>
+      <div class="row"><div class="lbl">Size</div><div>${_esc(data?.campaign?.mailerSize || data?.campaign?.customSize)}</div></div>
+      <div class="row"><div class="lbl">Target Qty</div><div>${_esc(data?.campaign?.targetQty)}</div></div>
     </div>
   </div>
 
@@ -1339,29 +1310,100 @@ function openPrintableSummary(data){
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
   <script>
     (function(){
-      const markers = ${JSON.stringify(markers)};
+      const ms = ${JSON.stringify((data?.targeting?.geography?.locations || [])
+        .map(loc => ({ lat:Number(loc.lat)||0, lng:Number(loc.lng)||0, label: loc.address||"" }))
+        .filter(m => m.lat && m.lng))};
+
       const map = L.map('map').setView([37.0298, -76.3452], 7);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-      const ms = [];
-      for (const m of markers){
+      const arr = [];
+      for (const m of ms){
         const mk = L.marker([m.lat, m.lng]).addTo(map);
         if (m.label) mk.bindTooltip(m.label);
-        ms.push(mk);
+        arr.push(mk);
       }
-      if (ms.length){
-        const fg = L.featureGroup(ms);
+      if (arr.length){
+        const fg = L.featureGroup(arr);
         map.fitBounds(fg.getBounds().pad(0.2));
       }
     })();
   <\/script>
-</body></html>`.trim();
-
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
+</body></html>`;
 }
-// === End Thank-You + Toast + Printable (NEW) =================================
+
+function buildPrintableBlobURL(data){
+  const blob = new Blob([buildPrintableHTML(data)], { type:'text/html' });
+  return URL.createObjectURL(blob);
+}
+
+function renderThankYou(data){
+  const wrap =
+    document.querySelector(".brand-body") ||
+    document.getElementById("mailerForm")?.parentElement ||
+    document.body;
+
+  const wantsVM = data?.preferences?.followUpPreference === "Virtual Meeting";
+  const canOpen = Boolean(INTEGRATIONS?.BOOKINGS_URL);
+  const allowAutoOpen = wantsVM && canOpen && !_isIOS() && !_inIframe();
+
+  wrap.innerHTML = `
+    <div class="content" style="padding:24px">
+      <h2 style="margin:0 0 6px 0">Thanks! Your request has been submitted.</h2>
+      <p class="muted" style="margin:0 0 16px 0">
+        We’ll review and follow up within one business day.
+      </p>
+
+      <div class="note" id="vm-note" style="margin-bottom:16px">
+        ${
+          allowAutoOpen
+            ? 'Your meeting scheduler will open in a new tab in <strong><span id="vm-count">7</span></strong> seconds. If it doesn’t, click the button below.'
+            : 'If you’d prefer a virtual meeting, tap the button below to open the scheduler.'
+        }
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <a id="link-printable" class="btn" href="#" target="_blank" rel="noopener">Open Printable Summary</a>
+        <a id="link-scheduler" class="btn primary" href="${INTEGRATIONS.BOOKINGS_URL}" target="_blank" rel="noopener noreferrer">Open Meeting Scheduler</a>
+      </div>
+
+      <p class="muted" style="margin-top:8px">
+        New tab opens on tap. If blocked, allow pop-ups for this site.
+      </p>
+    </div>
+  `;
+
+  // Make printable link a Blob URL at gesture-time (mobile-safe)
+  const linkPrintable = document.getElementById("link-printable");
+  const prepareBlobHref = () => {
+    const url = buildPrintableBlobURL(data);
+    linkPrintable.href = url;
+    setTimeout(()=> URL.revokeObjectURL(url), 60000);
+  };
+  // Set before navigation occurs
+  ['pointerdown','touchstart','mousedown','click'].forEach(evt=>{
+    linkPrintable.addEventListener(evt, prepareBlobHref, { passive:true });
+  });
+
+  // Optional desktop auto-open (avoid on iOS/iframes)
+  const cntNode = document.getElementById("vm-count");
+  if (allowAutoOpen) {
+    let secs = 7, opened = false;
+    const timer = setInterval(() => {
+      secs -= 1;
+      if (cntNode) cntNode.textContent = String(Math.max(secs, 0));
+      if (secs <= 0) {
+        clearInterval(timer);
+        if (!opened) {
+          document.getElementById("link-scheduler")?.click();
+          opened = true;
+        }
+      }
+    }, 1000);
+  }
+}
+
+// === End Thank-You + Toast + Printable (MOBILE-SAFE) =========================
 
 // ---- SUBMIT HANDLER (ADD THIS) ---------------------------------------------
 document.getElementById("mailerForm").addEventListener("submit", async (e) => {
